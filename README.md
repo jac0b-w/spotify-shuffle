@@ -1,5 +1,6 @@
 I constantly see people complain about the spotify shuffle algorithm so here's my solution. <br>
-
+This shuffles your playlist completely randomly so you don't get the same songs over and over again <br>
+<br>
 Go to https://developer.spotify.com/dashboard/ <br>
 Create an app<br>
 Go to settings and add ```http://localhost/``` as a redirect url <br>
