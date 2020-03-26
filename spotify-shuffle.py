@@ -6,6 +6,7 @@ import random
 
 from tkinter import *
 import json
+import webbrowser
 
 
 def shuffle(lst):
@@ -54,17 +55,23 @@ def construct_play_playlist(ids):
     sp.user_playlist_create(user=user_id,name="Your Shuffled Playlist",public=False,description="This playlist is only supposed to be created temporarily feel free to delete this playlist")
 
     temp_playlist_id = sp.user_playlists(user_id, limit = 1)["items"][0]["id"]
+    sp.user_playlist_unfollow(user = user_id, playlist_id = temp_playlist_id)
+    context_uri = "spotify:playlist:" + temp_playlist_id
+
+    #improves responsiveness for large playlists
+    sp.user_playlist_add_tracks(user=user_id,playlist_id=temp_playlist_id,tracks=[ids[0]])
+    sp.start_playback(context_uri=context_uri)
+    ids = ids[1:]
 
     for request in range((len(ids)//100) + 1):
-       sp.user_playlist_add_tracks(user=user_id,playlist_id=temp_playlist_id,tracks=ids[request*100:(request+1)*100],position=0)
-
-    context_uri = "spotify:playlist:" + temp_playlist_id
-    sp.start_playback(context_uri=context_uri)
+       sp.user_playlist_add_tracks(user=user_id,playlist_id=temp_playlist_id,tracks=ids[request*100:(request+1)*100])
     sp.user_playlist_unfollow(user = user_id, playlist_id = temp_playlist_id)
+    
 
 def write_json(client_id, client_secret):
     file = open("client_ids.json","w")
     file.write(json.dumps({"client_id":client_id,"client_secret":client_secret}))
+    file.close()
 
 def read_json():
     try:
@@ -73,8 +80,12 @@ def read_json():
         file.close()
         return (dic["client_id"], dic["client_secret"])
     except FileNotFoundError:
-        write_json("","")
-        read_json()
+        return ("","")
+
+def remove_spaces(string):
+    while string[-1] == " ":
+        string = string[:-1]
+    return string
 
 #######################################################################################################################
 
@@ -84,11 +95,10 @@ def clear_window(window):
 
 def auth_window():
     def button_press():
-
         scope = 'streaming playlist-read-private playlist-modify-private user-modify-playback-state user-read-currently-playing user-read-playback-state playlist-read-collaborative'
         redirect_uri = "http://localhost/"
-        client_id = client_id_entry.get()
-        client_secret = client_secret_entry.get()
+        client_id = remove_spaces(client_id_entry.get())
+        client_secret = remove_spaces(client_secret_entry.get())
 
         token = util.prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri)
         global sp
@@ -112,12 +122,21 @@ def auth_window():
     client_secret_entry.insert(0,client_secret_saved)
     client_secret_entry.grid(row=1,column=1)
 
-    Label(window,text="Follow instructions in the terminal/console",font=("Calibri", 13)).grid(row=2,columnspan=2)
+    def callback(url):
+        webbrowser.open_new(url)
+
+    link = Label(window, text="Where do I find these?", fg="blue", cursor="hand2")
+    link.grid(row = 2, columnspan =2)
+    link.bind("<Button-1>", lambda e: callback("https://github.com/jac0b-w/spotify-shuffle/blob/master/README.md"))
+    #Label(window,text="Follow instructions in the terminal/console",font=("Calibri", 13)).grid(row=2,columnspan=2)
+
     button = Button(window,command=button_press,text="Authorise",height=2,width=50).grid(row=3,columnspan=2)
 
 def shuffle_page():
     def shuffle_button_press():
+        shuffle_button.config(text = "loading...")
         construct_play_playlist(shuffle(collect_tracks(current_playlist())))
+        shuffle_button.config(text = "Shuffle current playlist")
 
     clear_window(window)
 
@@ -129,6 +148,7 @@ def shuffle_page():
 
 window = Tk()
 window.title("Spotify Shuffle")
+window.iconbitmap('icon.ico')
 window.geometry("395x150")
 window.resizable(0, 0)
 auth_window()
