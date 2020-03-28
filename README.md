@@ -1,7 +1,7 @@
 I constantly see people complain about the spotify shuffle algorithm so here's my solution.<br>
 This program shuffles your playlist completely randomly and creates a queue so you don't listen to the same songs over and over again.<br>
 <br>
-<ti>One time inital setup</ti><br>
+### One time inital setup:<br>
 Go to https://developer.spotify.com/dashboard/ <br>
 Accept the terms and create an app for non-commercial use. You can call it whatever you like.<br>
 Once you get to the dashboard click: settings > enter redirect url ```http://localhost/``` > set > save <br>
