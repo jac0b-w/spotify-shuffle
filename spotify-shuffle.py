@@ -1,13 +1,12 @@
 import spotipy
-import spotipy.util as util
 
 from itertools import count
 import random
 
 from tkinter import *
 import json
-import webbrowser
-import os
+from webbrowser import open as webbrowser_open
+from os import getenv
 
 ##########################################################################################
 
@@ -37,13 +36,13 @@ def prompt_for_user_token(
     """
     if not oauth_manager:
         if not client_id:
-            client_id = os.getenv("SPOTIPY_CLIENT_ID")
+            client_id = getenv("SPOTIPY_CLIENT_ID")
 
         if not client_secret:
-            client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
+            client_secret = getenv("SPOTIPY_CLIENT_SECRET")
 
         if not redirect_uri:
-            redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
+            redirect_uri = getenv("SPOTIPY_REDIRECT_URI")
 
         if not client_id:
             print(
@@ -82,7 +81,7 @@ def prompt_for_user_token(
         shuffle_page(sp_oauth.get_access_token(code, as_dict=False))
         
     elif not cached_token and not create_token:
-        webbrowser.open(sp_oauth.get_authorize_url())
+        webbrowser_open(sp_oauth.get_authorize_url())
         show_redirect_entry()
 
     else:
@@ -216,7 +215,7 @@ def auth_page():
     client_secret_entry.grid(row=1,column=1)
 
     def callback(url):
-        webbrowser.open_new(url)
+        webbrowser_open_new(url)
 
     link = Label(window, text="Where do I find these?", fg="blue", cursor="hand2")
     link.grid(row = 2, columnspan =2)
@@ -245,11 +244,14 @@ def shuffle_page(my_token):
     shuffle_button.pack()
 
 
-
-
 window = Tk()
+
+try:
+   window.iconbitmap('icon.ico')
+except TclError:
+   pass
+
 window.title("Spotify Shuffle")
-window.iconbitmap('icon.ico')
 window.geometry("395x225")
 window.resizable(0, 0)
 auth_page()
