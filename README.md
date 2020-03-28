@@ -8,7 +8,7 @@ run spotify-shuffle.exe<br>
 Copy the client id and client secret from the developer dashboard<br>
 Press 'Sign In'<br>
 You may be asked to sign in to spotify<br>
-When you reach the "This site can’t be reached" page copy the url and enter it into the 'Redirect URL' and press 'Authorise'<br>
+When you reach the "This site can’t be reached" page copy the url and enter it into the 'Redirect URL' box and press 'Authorise'<br>
 Press shuffle to get a shuffled playlist queue<br>
 <br>
 If you want to run the .py file you need to install spotipy ```pip install spotipy```
