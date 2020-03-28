@@ -22,10 +22,7 @@ def prompt_for_user_token(
     create_token=False
 ):
 
-    """ prompts the user to login if necessary and returns
-        the user token suitable for use with the spotipy.Spotify
-        constructor
-        Parameters:
+    """
          - username - the Spotify username
          - scope - the desired scope of the request
          - client_id - the client id of your app
@@ -198,7 +195,7 @@ def auth_page():
     client_secret_entry.grid(row=1,column=1)
 
     def callback(url):
-        webbrowser_open_new(url)
+        webbrowser_open(url)
 
     link = Label(window, text="Where do I find these?", fg="blue", cursor="hand2")
     link.grid(row = 2, columnspan =2)
@@ -232,11 +229,14 @@ def shuffle_page(my_token):
 
 
 window = Tk()
-
+    
 try:
-   window.iconbitmap('icon.ico')
-except TclError: #when icon.ico cannot be found
-   pass
+    window.iconbitmap('spotify-shuffle.exe')
+except TclError:
+    try:
+        window.iconbitmap('icon.ico')
+    except TclError:
+        pass
 
 window.title("Spotify Shuffle")
 window.geometry("395x300")
