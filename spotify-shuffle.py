@@ -93,15 +93,6 @@ def shuffle(lst):
     random.shuffle(temp)
     return temp
 
-# def collect_playlists(user):
-#     playlists = []
-#     for request in count(0):
-#         items = sp.user_playlists(user, offset = request*50)["items"]
-#         playlists += items
-#         if len(items) < 50:
-#             break
-#     return playlists
-
 def collect_tracks(id):
     tracks = []
     for request in count(0):
@@ -116,19 +107,6 @@ def current_playlist():
     context = sp.current_playback()["context"]
     if context != None and context["type"] == "playlist":
         return(context["uri"][-22:])
-
-# def playlist_selector(lst):
-#     print(0,"Currently playing playlist")
-#     for i,playlist in enumerate(lst):
-#         print(f"{i+1} {playlist['name']}")
-#     option = input(">>")
-#     if option == "0" or option == "0 ":
-#         return current_playlist()
-#     try:
-#         return lst[int(option)-1]["id"]
-#     except:
-#         print('Try again\n')
-#         playlist_selector(lst)
 
 def construct_play_playlist(ids):
     sp.user_playlist_create(user=user_id,name="Your Shuffled Playlist",public=False,description="This playlist is only supposed to be created temporarily feel free to delete this playlist")
@@ -180,11 +158,16 @@ def show_redirect_entry():
         redirect_link = remove_spaces(redirect_link_entry.get())
         prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri,create_token=True)
 
-    Label(window,text="Redirect Link:",font=("Calibri", 18)).grid(row=4,column=0)
+    Label(window,text="""
+        Sign into your spotify account and once you reach the 
+        'This site can’t be reached' page copy the url and paste it here.
+        (starts with: 'localhost/?code=')
+        """).grid(row=4,columnspan=2)
+    Label(window,text="Redirect URL:",font=("Calibri", 18)).grid(row=6,column=0)
     redirect_link_entry = Entry(window,width=40)
-    redirect_link_entry.grid(row=4,column=1)
+    redirect_link_entry.grid(row=6,column=1)
 
-    Button(window,command=auth_button_press,text="Authorise",height=2,width=50).grid(row=5,columnspan=2)
+    Button(window,command=auth_button_press,text="Authorise",height=2,width=50).grid(row=7,columnspan=2)
 
 def auth_page():
     def sign_in_button_press():
@@ -229,7 +212,7 @@ def auth_page():
 
 def shuffle_page(my_token):
     def shuffle_button_press():
-        shuffle_button.config(text = "loading...")
+        shuffle_button.config(text = "Shuffling albumns and liked songs \nis not supported, Try again")
         construct_play_playlist(shuffle(collect_tracks(current_playlist())))
         shuffle_button.config(text = "Shuffle current playlist")
 
@@ -240,19 +223,23 @@ def shuffle_page(my_token):
     global user_id
     user_id = sp.current_user()["id"]
 
-    shuffle_button = Button(window,text="Shuffle current playlist",command=shuffle_button_press,height=7,width=50,font=("Calibri", 18))
-    shuffle_button.pack()
+    Label(window,text="""
+        You cannot shuffle with a free account
+        Shuffling albumns and your liked songs are not currently supported
+        """).grid(row=0)
+    shuffle_button = Button(window,text="Shuffle current playlist",command=shuffle_button_press,height=7,width=30,font=("Calibri", 18))
+    shuffle_button.grid(row=1)
 
 
 window = Tk()
 
 try:
    window.iconbitmap('icon.ico')
-except TclError:
+except TclError: #when icon.ico cannot be found
    pass
 
 window.title("Spotify Shuffle")
-window.geometry("395x225")
+window.geometry("395x300")
 window.resizable(0, 0)
 auth_page()
 mainloop()
