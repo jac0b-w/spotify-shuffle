@@ -1,83 +1,39 @@
 import spotipy
 
 from itertools import count
-import random
+from random import shuffle as rand_shuffle
 
 from tkinter import *
-import json
+from json import loads, dumps
 from webbrowser import open as webbrowser_open
-from os import getenv
 
-##########################################################################################
+class ContextError(Exception):
+    pass
 
 def prompt_for_user_token(
     username,
-    scope=None,
-    client_id=None,
-    client_secret=None,
-    redirect_uri=None,
-    cache_path=None,
-    oauth_manager=None,
-    show_dialog=False,
-    create_token=False
+    scope,
+    client_id,
+    client_secret,
+    redirect_uri,
+    redirect_link=None
 ):
 
-    """
-         - username - the Spotify username
-         - scope - the desired scope of the request
-         - client_id - the client id of your app
-         - client_secret - the client secret of your app
-         - redirect_uri - the redirect URI of your app
-         - cache_path - path to location to save tokens
-         - oauth_manager - Oauth manager object.
-    """
-    if not oauth_manager:
-        if not client_id:
-            client_id = getenv("SPOTIPY_CLIENT_ID")
-
-        if not client_secret:
-            client_secret = getenv("SPOTIPY_CLIENT_SECRET")
-
-        if not redirect_uri:
-            redirect_uri = getenv("SPOTIPY_REDIRECT_URI")
-
-        if not client_id:
-            print(
-                """
-                You need to set your Spotify API credentials.
-                You can do this by setting environment variables like so:
-                export SPOTIPY_CLIENT_ID='your-spotify-client-id'
-                export SPOTIPY_CLIENT_SECRET='your-spotify-client-secret'
-                export SPOTIPY_REDIRECT_URI='your-app-redirect-url'
-                Get your credentials at
-                    https://developer.spotify.com/my-applications
-            """
-            )
-            raise spotipy.SpotifyException(550, -1, "no credentials set")
-
-        cache_path = cache_path or ".cache-" + username
-
-    sp_oauth = oauth_manager or spotipy.SpotifyOAuth(
-        client_id,
-        client_secret,
-        redirect_uri,
+    sp_oauth = spotipy.SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=redirect_uri,
         scope=scope,
-        cache_path=cache_path,
-        show_dialog=show_dialog
+        cache_path=".cache",
     )
-
-    # try to get a valid token for this user, from the cache,
-    # if not in the cache, the create a new (this will send
-    # the user to a web page where they can authorize this app)
 
     cached_token = sp_oauth.get_cached_token()
 
-    if not cached_token and create_token:
-        url = redirect_link
-        code = sp_oauth.parse_response_code(url)
+    if not cached_token and redirect_link:
+        code = sp_oauth.parse_response_code(redirect_link)
         shuffle_page(sp_oauth.get_access_token(code, as_dict=False))
         
-    elif not cached_token and not create_token:
+    elif not cached_token and not redirect_link:
         webbrowser_open(sp_oauth.get_authorize_url())
         show_redirect_entry()
 
@@ -87,23 +43,35 @@ def prompt_for_user_token(
 ##########################################################################################
 def shuffle(lst):
     temp = lst
-    random.shuffle(temp)
+    rand_shuffle(temp)
     return temp
 
-def collect_tracks(id):
-    tracks = []
-    for request in count(0):
-        items = sp.playlist_tracks(playlist_id=id, offset=100*request)["items"]
-        tracks += items
-        if len(items) < 100:
-            break
-    tracks = [track["track"]["id"] for track in tracks if track["track"]["id"] != None]
-    return tracks
+def collect_tracks(context_uri):
+    context = {"type":context_uri.split(":")[-2],"id":context_uri.split(":")[-1]}
+    track_ids = []
+    if context["type"] == "playlist":
+        for request in count(0):
+            items = sp.playlist_tracks(playlist_id=context["id"], offset=100*request)["items"]
+            track_ids += [track["track"]["id"] for track in items]
+            if len(items) < 100:
+                break
+    elif context["type"] == "album":
+        for request in count(0):
+            items = sp.album_tracks(album_id=context["id"], offset=50*request)["items"]
+            track_ids += [track["id"] for track in items]
+            if len(items) < 50:
+                break
+    return track_ids
 
-def current_playlist():
+
+def current_context_uri():
     context = sp.current_playback()["context"]
-    if context != None and context["type"] == "playlist":
-        return(context["uri"][-22:])
+    if context == None:
+        raise ContextError("Shuffling Liked Songs and Local Files \nis not supported\nTry Again")
+    elif context["type"] == "artist":
+        raise ContextError("Shuffling from the artist page \nis not supported\nTry Again")
+    return(context["uri"])
+
 
 def construct_play_playlist(ids):
     sp.user_playlist_create(user=user_id,name="Your Shuffled Playlist",public=False,description="This playlist is only supposed to be created temporarily feel free to delete this playlist")
@@ -123,15 +91,13 @@ def construct_play_playlist(ids):
     
 
 def write_json(client_id, client_secret):
-    file = open("client_ids.json","w")
-    file.write(json.dumps({"client_id":client_id,"client_secret":client_secret}))
-    file.close()
+    with open("client_ids.json","w") as f:
+        f.write(dumps({"client_id":client_id,"client_secret":client_secret}))
 
 def read_json():
     try:
-        file = open("client_ids.json","r")
-        dic = json.loads(file.read())
-        file.close()
+        with open("client_ids.json","r") as f:
+            dic = loads(f.read())
         return (dic["client_id"], dic["client_secret"])
     except FileNotFoundError:
         return ("","")
@@ -151,9 +117,9 @@ def clear_window(window):
 def show_redirect_entry():
     def auth_button_press():
         write_json(client_id,client_secret)
-        global redirect_link
+        #global redirect_link
         redirect_link = remove_spaces(redirect_link_entry.get())
-        prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri,create_token=True)
+        prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri,redirect_link=redirect_link)
 
     Label(window,text="""
         Sign into your spotify account and once you reach the 
@@ -179,7 +145,7 @@ def auth_page():
         client_id = remove_spaces(client_id_entry.get())
         client_secret = remove_spaces(client_secret_entry.get())
 
-        prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri,create_token=False)
+        prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri)
 
 
     client_id_saved, client_secret_saved = read_json()
@@ -209,9 +175,10 @@ def auth_page():
 
 def shuffle_page(my_token):
     def shuffle_button_press():
-        shuffle_button.config(text = "Shuffling albumns and liked songs \nis not supported, Try again")
-        construct_play_playlist(shuffle(collect_tracks(current_playlist())))
-        shuffle_button.config(text = "Shuffle current playlist")
+        try:
+            construct_play_playlist(shuffle(collect_tracks(current_context_uri())))
+        except ContextError as e:
+            shuffle_button.config(text = e)
 
     global sp
     sp = spotipy.Spotify(auth=my_token)
@@ -222,7 +189,7 @@ def shuffle_page(my_token):
 
     Label(window,text="""
         You cannot shuffle with a free account
-        Shuffling albumns and your liked songs are not currently supported
+        Shuffling your liked songs is not currently supported
         """).grid(row=0)
     shuffle_button = Button(window,text="Shuffle current playlist",command=shuffle_button_press,height=7,width=30,font=("Calibri", 18))
     shuffle_button.grid(row=1)
