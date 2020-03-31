@@ -117,7 +117,6 @@ def clear_window(window):
 def show_redirect_entry():
     def auth_button_press():
         write_json(client_id,client_secret)
-        #global redirect_link
         redirect_link = remove_spaces(redirect_link_entry.get())
         prompt_for_user_token(username="",scope=scope,client_id=client_id,client_secret=client_secret,redirect_uri=redirect_uri,redirect_link=redirect_link)
 
